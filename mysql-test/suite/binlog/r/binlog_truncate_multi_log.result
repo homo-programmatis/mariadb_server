@@ -1,6 +1,7 @@
 call mtr.add_suppression("Can.t init tc log");
 call mtr.add_suppression("Aborting");
 SET @@global.max_binlog_size= 4096;
+SET @@global.sync_binlog= 1;
 RESET MASTER;
 FLUSH LOGS;
 CREATE TABLE ti (a INT PRIMARY KEY, b MEDIUMTEXT) ENGINE=Innodb;
@@ -35,7 +36,7 @@ connection default;
 # Kill the server
 disconnect master1;
 disconnect master2;
-# restart: --rpl-semi-sync-slave-enabled=1
+# restart: --rpl-semi-sync-slave-enabled=1 --sync-binlog=1
 FOUND 1 /truncated binlog file:.*master.*000002/ in mysqld.1.err
 "One record should be present in table"
 SELECT * FROM ti;
@@ -50,4 +51,5 @@ SELECT @@global.gtid_binlog_pos;
 0-1-4
 # Cleanup
 DROP TABLE ti;
+SET @@global.sync_binlog= default;
 # End of the tests

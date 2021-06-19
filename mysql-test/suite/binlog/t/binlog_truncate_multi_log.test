@@ -13,7 +13,7 @@ call mtr.add_suppression("Can.t init tc log");
 call mtr.add_suppression("Aborting");
 
 SET @@global.max_binlog_size= 4096;
-
+SET @@global.sync_binlog= 1;
 RESET MASTER;
 FLUSH LOGS;
 CREATE TABLE ti (a INT PRIMARY KEY, b MEDIUMTEXT) ENGINE=Innodb;
@@ -53,7 +53,7 @@ SELECT @@global.gtid_binlog_state;
 #
 # Server restart
 #
---let $restart_parameters= --rpl-semi-sync-slave-enabled=1
+--let $restart_parameters= --rpl-semi-sync-slave-enabled=1 --sync-binlog=1
 --source include/start_mysqld.inc
 
 # Check error log for a successful truncate message.
@@ -73,5 +73,5 @@ SELECT @@global.gtid_binlog_pos;
 
 --echo # Cleanup
 DROP TABLE ti;
-
+SET @@global.sync_binlog= default;
 --echo # End of the tests
