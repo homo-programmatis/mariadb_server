@@ -3018,7 +3018,8 @@ btr_cur_ins_lock_and_undo(
                                 page_id_t(block->page.id.space(),
                                           next_page_no),
                                 block->page.size, latch_mode, index, mtr);
-                            if (cur_block != old_block)
+                            if (cur_block != old_block &&
+                                latch_mode == BTR_SEARCH_LEAF)
                               btr_leaf_page_release(btr_cur_get_block(cursor),
                                                     latch_mode, mtr);
                             page_cur_set_before_first(
@@ -3043,8 +3044,9 @@ btr_cur_ins_lock_and_undo(
                         {
                           ut_ad(latch_mode == BTR_MODIFY_LEAF ||
                                 latch_mode == BTR_SEARCH_LEAF);
-                          btr_leaf_page_release(btr_cur_get_block(cursor),
-                                                latch_mode, mtr);
+                          if (latch_mode == BTR_SEARCH_LEAF)
+                            btr_leaf_page_release(btr_cur_get_block(cursor),
+                                                  latch_mode, mtr);
                           page_cur->block= old_block;
                         }
                         page_cur->rec= rec;
@@ -5210,7 +5212,7 @@ secondary index, the mtr must be committed before latching any further pages
 otherwise
 @return TRUE if success, i.e., the page did not become too empty */
 ibool btr_cur_optimistic_delete(btr_cur_t *cursor, ulint flags, mtr_t *mtr,
-                                bool from_purge)
+                                bool from_purge, bool convert_lock_to_gap)
 {
 	buf_block_t*	block;
 	rec_t*		rec;
@@ -5249,7 +5251,7 @@ ibool btr_cur_optimistic_delete(btr_cur_t *cursor, ulint flags, mtr_t *mtr,
 		page_t*		page	= buf_block_get_frame(block);
 		page_zip_des_t*	page_zip= buf_block_get_page_zip(block);
 
-		lock_update_delete(block, rec, from_purge);
+		lock_update_delete(block, rec, from_purge, convert_lock_to_gap);
 
 		btr_search_update_hash_on_delete(cursor);
 
@@ -5320,7 +5322,8 @@ otherwise
 @return TRUE if compression occurred */
 ibool btr_cur_pessimistic_delete(dberr_t *err, ibool has_reserved_extents,
                                  btr_cur_t *cursor, ulint flags, bool rollback,
-                                 mtr_t *mtr, bool from_purge)
+                                 mtr_t *mtr, bool from_purge,
+                                 bool convert_lock_to_gap)
 {
 	buf_block_t*	block;
 	page_t*		page;
@@ -5396,7 +5399,8 @@ ibool btr_cur_pessimistic_delete(dberr_t *err, ibool has_reserved_extents,
 		ut_ad(!(rec_get_info_bits(rec, page_rec_is_comp(rec))
 			& REC_INFO_MIN_REC_FLAG));
 		if (flags == 0) {
-			lock_update_delete(block, rec, from_purge);
+			lock_update_delete(block, rec, from_purge,
+                            convert_lock_to_gap);
 		}
 	}
 
@@ -5551,7 +5555,7 @@ void btr_cur_node_ptr_delete(btr_cur_t* parent, mtr_t* mtr)
 	dberr_t err;
 	ibool compressed = btr_cur_pessimistic_delete(&err, TRUE, parent,
 						      BTR_CREATE_FLAG, false,
-						      mtr);
+						      mtr, false, true);
 	ut_a(err == DB_SUCCESS);
 	if (!compressed) {
 		btr_cur_compress_if_useful(parent, FALSE, mtr);

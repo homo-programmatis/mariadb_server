@@ -2539,7 +2539,6 @@ Makes a record to inherit the locks (except LOCK_INSERT_INTENTION type)
 of another record as gap type locks, but does not reset the lock bits of
 the other record. Also waiting lock requests on rec are inherited as
 GRANTED gap locks. */
-static
 void
 lock_rec_inherit_to_gap(
 /*====================*/
@@ -2551,8 +2550,9 @@ lock_rec_inherit_to_gap(
 						this record */
 	ulint			heir_heap_no,	/*!< in: heap_no of the
 						inheriting record */
-	ulint			heap_no)	/*!< in: heap_no of the
+	ulint			heap_no,	/*!< in: heap_no of the
 						donating record */
+	bool convert_to_gap = true)
 {
 	lock_t*	lock;
 
@@ -2572,8 +2572,9 @@ lock_rec_inherit_to_gap(
 			  || lock->trx->isolation_level
 			  <= TRX_ISO_READ_COMMITTED)
 			 && lock_get_mode(lock) ==
-			 (lock->trx->duplicates ? LOCK_S : LOCK_X))) {
-
+			 (lock->trx->duplicates ? LOCK_S : LOCK_X))
+		    && (!(lock->type_mode & LOCK_REC_NOT_GAP)
+		      || convert_to_gap)) {
 			lock_rec_add_to_queue(
 				LOCK_REC | LOCK_GAP | lock_get_mode(lock),
 				heir_block, heir_heap_no, lock->index,
@@ -3465,35 +3466,38 @@ lock_update_insert(
 		block, receiver_heap_no, donator_heap_no);
 }
 
-#if !defined(DBUG_OFF)
+#ifdef UNIV_DEBUG
 /** Checks if the record has gap or next-key lock
 @param block block buffer block containing rec
 @param heap_no heap number of the record to check
 @return true if the record has gap or ordinary lock, false otherwise
 */
 inline bool lock_rec_has_gap_or_ordinary(const buf_block_t *block,
-                                         ulint heap_no)
+                                         ulint heap_no,
+                                         bool check_locking_read)
 {
+  ut_ad(lock_mutex_own());
   if (heap_no == PAGE_HEAP_NO_INFIMUM)
     return false;
-
-  bool result = false;
-
-  for (lock_t *lock= lock_rec_get_first(lock_sys->rec_hash,
-                                        block, heap_no);
+  bool gap= false;
+  bool locking_read= false;
+  for (lock_t *lock= lock_rec_get_first(lock_sys->rec_hash, block, heap_no);
        lock != NULL; lock= lock_rec_get_next(heap_no, lock))
-    if ((heap_no == PAGE_HEAP_NO_SUPREMUM) ||
-        (lock_rec_get_gap(lock) && !lock_rec_get_insert_intention(lock)) ||
-        (lock->type_mode & ~(LOCK_MODE_MASK | LOCK_TYPE_MASK)) ==
-            LOCK_ORDINARY)
+    if (!lock_rec_get_insert_intention(lock) &&
+        (heap_no == PAGE_HEAP_NO_SUPREMUM || !lock_rec_get_rec_not_gap(lock)))
     {
-      result = true;
-      break;
+      gap = true;
+      if (!check_locking_read)
+        break;
+      if (lock->trx->locking_read_is_active(block->page.id, heap_no))
+      {
+        locking_read = true;
+        break;
+      }
     }
-
-  return result;
+  return gap && (!check_locking_read || !locking_read);
 }
-#endif // !defined(DBUG_OFF)
+#endif /* !defined(DBUG_OFF) */
 
 /** Updates the lock table when a record is removed.
 @param block block buffer block containing rec
@@ -3502,7 +3506,7 @@ inline bool lock_rec_has_gap_or_ordinary(const buf_block_t *block,
 otherwise
 */
 void lock_update_delete(const buf_block_t *block, const rec_t *rec,
-                        bool from_purge)
+                        bool from_purge, bool convert_lock_to_gap)
 {
 	const page_t*	page = block->frame;
 	ulint		heap_no;
@@ -3526,14 +3530,15 @@ void lock_update_delete(const buf_block_t *block, const rec_t *rec,
 
 	/* Let the next record inherit the locks from rec, in gap mode */
 	if (!from_purge)
-		lock_rec_inherit_to_gap(block, block, next_heap_no, heap_no);
-#if !defined(DBUG_OFF)
-	else if (lock_rec_has_gap_or_ordinary(block, heap_no)) {
+		lock_rec_inherit_to_gap(block, block, next_heap_no, heap_no,
+		    convert_lock_to_gap);
+#ifdef UNIV_DEBUG
+	else if (lock_rec_has_gap_or_ordinary(block, heap_no, true)) {
 			ut_a(rec_get_deleted_flag(rec, page_is_comp(page)));
 			ut_a(lock_rec_has_gap_or_ordinary(block,
-				next_heap_no));
+				next_heap_no, false));
 	}
-#endif // !defined(DBUG_OFF)
+#endif // UNIV_DEBUG
 	/* Reset the lock bits on rec and release waiting transactions */
 
 	lock_rec_reset_and_release_wait(block, heap_no);

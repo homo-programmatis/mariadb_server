@@ -1270,7 +1270,13 @@ sel_set_rec_lock(
 			return(DB_LOCK_TABLE_FULL);
 		}
 	}
-
+#ifdef UNIV_DEBUG
+	if (!dict_index_is_spatial(index)
+	    && type == LOCK_ORDINARY
+	    && rec_get_deleted_flag(rec,dict_table_is_comp(index->table)))
+		trx->add_to_locking_read_records(block->page.id,
+		    page_rec_get_heap_no(rec));
+#endif /* UNIV_DEBUG */
 	if (dict_index_is_clust(index)) {
 		err = lock_clust_rec_read_check_and_lock(
 			0, block, rec, index, offsets,
@@ -1292,7 +1298,6 @@ sel_set_rec_lock(
 				static_cast<lock_mode>(mode), type, thr);
 		}
 	}
-
 	return(err);
 }
 
@@ -5468,10 +5473,12 @@ locks_ok_del_marked:
 			mtr.start();
 			btr_pcur_copy_stored_position(pcur,
 						      &gap_lock_init_pcur);
-			btr_pcur_restore_position(BTR_SEARCH_LEAF, pcur, &mtr);
-			btr_pcur_free(&gap_lock_init_pcur);
 			gl_dir = FORWARD;
 			moves_up = !moves_up;
+			sel_restore_position_for_mysql(
+				&same_user_rec, BTR_SEARCH_LEAF, pcur,
+				moves_up, &mtr);
+			btr_pcur_free(&gap_lock_init_pcur);
 			goto next_rec;
 		}
 	}
@@ -6000,6 +6007,7 @@ func_exit:
 
 	ut_ad(!sync_check_iterate(sync_check()));
 
+	ut_d(trx->clear_locking_read_records());
 	DEBUG_SYNC_C("innodb_row_search_for_mysql_exit");
 
 	DBUG_RETURN(err);

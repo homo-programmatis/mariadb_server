@@ -238,7 +238,7 @@ lock_update_insert(
 otherwise
 */
 void lock_update_delete(const buf_block_t *block, const rec_t *rec,
-                        bool from_purge= false);
+                        bool from_purge, bool convert_lock_to_gap);
 /*********************************************************************//**
 Stores on the page infimum record the explicit locks of another record.
 This function is used to store the lock state of a record when it is

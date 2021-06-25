@@ -1660,7 +1660,7 @@ row_log_table_apply_delete_low(
 	}
 
 	btr_cur_pessimistic_delete(&error, FALSE, btr_pcur_get_btr_cur(pcur),
-				   BTR_CREATE_FLAG, false, mtr);
+				   BTR_CREATE_FLAG, false, mtr, false, true);
 	mtr_commit(mtr);
 
 	if (error != DB_SUCCESS) {
@@ -1708,7 +1708,8 @@ flag_ok:
 
 		btr_cur_pessimistic_delete(&error, FALSE,
 					   btr_pcur_get_btr_cur(pcur),
-					   BTR_CREATE_FLAG, false, mtr);
+					   BTR_CREATE_FLAG, false, mtr, false,
+					   true);
 		mtr_commit(mtr);
 	}
 
@@ -2176,7 +2177,7 @@ func_exit_committed:
 
 		btr_cur_pessimistic_delete(
 			&error, FALSE, btr_pcur_get_btr_cur(&pcur),
-			BTR_CREATE_FLAG, false, &mtr);
+			BTR_CREATE_FLAG, false, &mtr, false, true);
 
 		if (error != DB_SUCCESS) {
 			break;
@@ -3150,7 +3151,8 @@ row_log_apply_op_low(
 			}
 
 			if (btr_cur_optimistic_delete(
-				    &cursor, BTR_CREATE_FLAG, &mtr)) {
+				    &cursor, BTR_CREATE_FLAG, &mtr, false,
+				    true)) {
 				*error = DB_SUCCESS;
 				break;
 			}
@@ -3181,7 +3183,7 @@ row_log_apply_op_low(
 
 			btr_cur_pessimistic_delete(
 				error, FALSE, &cursor,
-				BTR_CREATE_FLAG, false, &mtr);
+				BTR_CREATE_FLAG, false, &mtr, false, true);
 			break;
 		case ROW_OP_INSERT:
 			if (exists) {

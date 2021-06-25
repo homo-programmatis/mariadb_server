@@ -1467,7 +1467,10 @@ sync_latch_meta_init()
 			 trx_i_s_cache_lock_key);
 
 	LATCH_ADD_RWLOCK(TRX_PURGE, SYNC_PURGE_LATCH, trx_purge_latch_key);
-
+#ifdef UNIV_DEBUG
+	LATCH_ADD_MUTEX(TRX_LOCKING_READ_RECORDS_MUTEX, SYNC_NO_ORDER_CHECK,
+			PFS_NOT_INSTRUMENTED);
+#endif /* UNIV_DEBUG */
 	LATCH_ADD_RWLOCK(IBUF_INDEX_TREE, SYNC_IBUF_INDEX_TREE,
 			 index_tree_rw_lock_key);
 

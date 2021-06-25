@@ -223,7 +223,7 @@ row_undo_mod_remove_clust_low(
 	ut_ad(rec_get_trx_id(btr_cur_get_rec(btr_cur), btr_cur->index));
 
 	if (mode == BTR_MODIFY_LEAF) {
-		err = btr_cur_optimistic_delete(btr_cur, 0, mtr)
+		err = btr_cur_optimistic_delete(btr_cur, 0, mtr, false, false)
 			? DB_SUCCESS
 			: DB_FAIL;
 	} else {
@@ -237,7 +237,7 @@ row_undo_mod_remove_clust_low(
 		are passing rollback=false, just like purge does. */
 
 		btr_cur_pessimistic_delete(&err, FALSE, btr_cur, 0,
-					   false, mtr);
+					   false, mtr, false, false);
 
 		/* The delete operation may fail if we have little
 		file space left: TODO: easiest to crash the database
@@ -531,7 +531,8 @@ row_undo_mod_del_mark_or_remove_sec_low(
 		}
 
 		if (modify_leaf) {
-			success = btr_cur_optimistic_delete(btr_cur, 0, &mtr);
+			success = btr_cur_optimistic_delete(btr_cur, 0, &mtr,
+			    false, false);
 			if (success) {
 				err = DB_SUCCESS;
 			} else {
@@ -544,7 +545,7 @@ row_undo_mod_del_mark_or_remove_sec_low(
 			record that contains externally stored columns. */
 			ut_ad(!dict_index_is_clust(index));
 			btr_cur_pessimistic_delete(&err, FALSE, btr_cur, 0,
-						   false, &mtr);
+						   false, &mtr, false, false);
 
 			/* The delete operation may fail if we have little
 			file space left: TODO: easiest to crash the database

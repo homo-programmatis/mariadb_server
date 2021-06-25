@@ -494,7 +494,7 @@ secondary index, the mtr must be committed before latching any further pages
 otherwise
 @return TRUE if success, i.e., the page did not become too empty */
 ibool btr_cur_optimistic_delete(btr_cur_t *cursor, ulint flags, mtr_t *mtr,
-                                bool from_purge= false)
+                                bool from_purge, bool convert_lock_to_gap)
     MY_ATTRIBUTE((nonnull, warn_unused_result));
 /** Removes the record on which the tree cursor is positioned. Tries
 to compress the page if its fillfactor drops below a threshold
@@ -518,7 +518,8 @@ otherwise
 @return TRUE if compression occurred */
 ibool btr_cur_pessimistic_delete(dberr_t *err, ibool has_reserved_extents,
                                  btr_cur_t *cursor, ulint flags, bool rollback,
-                                 mtr_t *mtr, bool from_purge= false)
+                                 mtr_t *mtr, bool from_purge,
+                                 bool convert_lock_to_gap)
     MY_ATTRIBUTE((nonnull));
 /** Delete the node pointer in a parent page.
 @param[in,out]	parent	cursor pointing to parent record

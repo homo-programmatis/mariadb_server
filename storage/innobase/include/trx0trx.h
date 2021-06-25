@@ -34,7 +34,10 @@ Created 3/26/1996 Heikki Tuuri
 #include "trx0xa.h"
 #include "ut0vec.h"
 #include "fts0fts.h"
-
+#ifdef UNIV_DEBUG
+#include "buf0types.h" // page_id_t
+#include "hash0hash.h" // hash_table_t
+#endif /* UNIV_DEBUG */
 #include <vector>
 #include <set>
 
@@ -1199,6 +1202,29 @@ private:
 	/** Assign a rollback segment for modifying temporary tables.
 	@return the assigned rollback segment */
 	trx_rseg_t* assign_temp_rseg();
+#ifdef UNIV_DEBUG
+public:
+  struct rec_id_t {
+    page_id_t page_id;
+    ulint heap_no;
+    rec_id_t(page_id_t page_id, ulint heap_no) :
+      page_id(page_id), heap_no(heap_no) {}
+    hash_node_t locking_read_records_hash;
+    static ulint fold(page_id_t page_id, ulint heap_no) {
+      return ut_fold_ulint_pair(page_id.fold(), heap_no);
+    }
+    ulint fold() { return fold(page_id, heap_no); }
+    bool operator==(const rec_id_t& rhs) const
+    {
+      return page_id == rhs.page_id && heap_no == rhs.heap_no;
+    }
+  };
+  hash_table_t  *locking_read_records;
+  ib_mutex_t locking_read_records_mutex;
+  bool locking_read_is_active(page_id_t page_id, ulint heap_no);
+  void clear_locking_read_records();
+  void add_to_locking_read_records(page_id_t page_id, ulint heap_no);
+#endif /* UNIV_DEBUG */
 };
 
 /**

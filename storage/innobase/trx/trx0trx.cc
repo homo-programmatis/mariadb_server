@@ -49,6 +49,9 @@ Created 3/26/1996 Heikki Tuuri
 #include "trx0xa.h"
 #include "ut0pool.h"
 #include "ut0vec.h"
+#ifdef UNIV_DEBUG
+#include "hash0hash.h" // hash_create(), hash_table_free()
+#endif /* UNIV_DEBUG */
 
 #include <set>
 #include <new>
@@ -201,6 +204,11 @@ struct TrxFactory {
 
 		mutex_create(LATCH_ID_TRX, &trx->mutex);
 		mutex_create(LATCH_ID_TRX_UNDO, &trx->undo_mutex);
+#ifdef UNIV_DEBUG
+		trx->locking_read_records = hash_create(100);
+		mutex_create(LATCH_ID_TRX_LOCKING_READ_RECORDS_MUTEX,
+		      &trx->locking_read_records_mutex);
+#endif /* UNIV_DEBUG*/
 	}
 
 	/** Release resources held by the transaction object.
@@ -236,6 +244,11 @@ struct TrxFactory {
 
 		mutex_free(&trx->mutex);
 		mutex_free(&trx->undo_mutex);
+#ifdef UNIV_DEBUG
+		trx->clear_locking_read_records();
+		hash_table_free(trx->locking_read_records);
+		mutex_free(&trx->locking_read_records_mutex);
+#endif /* UNIV_DEBUG */
 
 		trx->mod_tables.~trx_mod_tables_t();
 
@@ -1206,6 +1219,50 @@ trx_t::assign_temp_rseg()
 	ut_ad(!rseg->is_persistent());
 	return(rseg);
 }
+
+#ifdef UNIV_DEBUG
+bool trx_t::locking_read_is_active(page_id_t page_id, ulint heap_no)
+{
+  rec_id_t *found= NULL;
+  mutex_enter(&locking_read_records_mutex);
+  HASH_SEARCH(locking_read_records_hash, locking_read_records,
+              rec_id_t::fold(page_id, heap_no), rec_id_t *, found, (void) 0,
+              (found->page_id == page_id && found->heap_no == heap_no));
+  mutex_exit(&locking_read_records_mutex);
+  return found && found->page_id == page_id && found->heap_no == heap_no;
+}
+
+void trx_t::clear_locking_read_records()
+{
+  mutex_enter(&locking_read_records_mutex);
+  /* free the hash elements */
+  for (ulint i= 0; i < hash_get_n_cells(locking_read_records); i++)
+  {
+    rec_id_t *rec_id=
+        static_cast<rec_id_t *>(HASH_GET_FIRST(locking_read_records, i));
+    while (rec_id)
+    {
+      rec_id_t *prev_rec_id= rec_id;
+      rec_id= static_cast<rec_id_t *>(
+          HASH_GET_NEXT(locking_read_records_hash, prev_rec_id));
+      HASH_DELETE(rec_id_t, locking_read_records_hash, locking_read_records,
+                  prev_rec_id->fold(), prev_rec_id);
+      delete prev_rec_id;
+    }
+  }
+  mutex_exit(&locking_read_records_mutex);
+}
+
+void trx_t::add_to_locking_read_records(page_id_t page_id, ulint heap_no)
+{
+  rec_id_t *rec_id= new rec_id_t(page_id, heap_no);
+  ut_a(rec_id);
+  mutex_enter(&locking_read_records_mutex);
+  HASH_INSERT(rec_id_t, locking_read_records_hash, locking_read_records,
+              rec_id->fold(), rec_id);
+  mutex_exit(&locking_read_records_mutex);
+}
+#endif /* UNIV_DEBUG */
 
 /****************************************************************//**
 Starts a transaction. */

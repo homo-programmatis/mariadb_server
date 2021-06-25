@@ -1419,7 +1419,13 @@ row_ins_set_shared_rec_lock(
 	dberr_t	err;
 
 	ut_ad(rec_offs_validate(rec, index, offsets));
-
+#ifdef UNIV_DEBUG
+	if (!dict_index_is_spatial(index)
+	    && type == LOCK_ORDINARY
+	    && rec_get_deleted_flag(rec,dict_table_is_comp(index->table)))
+		thr_get_trx(thr)->add_to_locking_read_records(block->page.id,
+		    page_rec_get_heap_no(rec));
+#endif /* UNIV_DEBUG */
 	if (dict_index_is_clust(index)) {
 		err = lock_clust_rec_read_check_and_lock(
 			0, block, rec, index, offsets, LOCK_S, type, thr);
@@ -1427,7 +1433,6 @@ row_ins_set_shared_rec_lock(
 		err = lock_sec_rec_read_check_and_lock(
 			0, block, rec, index, offsets, LOCK_S, type, thr);
 	}
-
 	return(err);
 }
 
@@ -1857,6 +1862,7 @@ do_possible_lock_wait:
 	}
 
 exit_func:
+	ut_d(trx->clear_locking_read_records());
 	if (heap != NULL) {
 		mem_heap_free(heap);
 	}
@@ -2199,6 +2205,7 @@ row_ins_scan_sec_index_for_duplicate(
 	} while (btr_pcur_move_to_next(&pcur, mtr));
 
 end_scan:
+	ut_d(thr_get_trx(thr)->clear_locking_read_records());
 	/* Restore old value */
 	dtuple_set_n_fields_cmp(entry, n_fields_cmp);
 

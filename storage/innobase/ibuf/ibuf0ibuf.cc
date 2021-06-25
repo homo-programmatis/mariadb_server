@@ -4139,7 +4139,7 @@ ibuf_delete(
 			return;
 		}
 
-		lock_update_delete(block, rec);
+		lock_update_delete(block, rec, false, true);
 
 		if (!page_zip) {
 			max_ins_size
@@ -4242,7 +4242,7 @@ ibuf_delete_rec(
 	ut_ad(ibuf_rec_get_space(mtr, btr_pcur_get_rec(pcur)) == space);
 
 	success = btr_cur_optimistic_delete(btr_pcur_get_btr_cur(pcur),
-					    0, mtr);
+					    0, mtr, false, true);
 
 	const page_id_t	page_id(space, page_no);
 
@@ -4295,7 +4295,7 @@ ibuf_delete_rec(
 	root = ibuf_tree_root_get(mtr);
 
 	btr_cur_pessimistic_delete(&err, TRUE, btr_pcur_get_btr_cur(pcur), 0,
-				   false, mtr);
+				   false, mtr, false, true);
 	ut_a(err == DB_SUCCESS);
 
 	ibuf_size_update(root);
