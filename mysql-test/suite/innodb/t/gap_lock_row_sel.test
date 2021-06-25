@@ -1,0 +1,67 @@
+--source include/have_innodb.inc
+--source include/have_debug.inc
+--source include/have_sequence.inc
+
+--let $max_records = 20480
+--let $page_size_in_rows = 2048
+--let $pg_val = ($page_size_in_rows * 10)
+--let $pg_gap = ($pg_val*6)
+--let $pg_not_gap = ($pg_val*2)
+--let $gaps_count = 1
+
+create table t(a int unsigned primary key,
+               b int unsigned,
+               index b (b)) engine=innodb;
+
+--eval insert into t select seq*10, seq*10 from seq_1_to_$max_records
+
+connect (prevent_purge,localhost,root,,);
+start transaction with consistent snapshot;
+
+--connection default
+# Delete several records at the start and the end of the table to check if
+# bidirectional gap locks extending works well when a tables start/end
+# is reached.
+delete from t where a < 100;
+--eval delete from t where a > (($max_records * 10) - 100)
+
+# Delete several pages to test if persistent cursor is moved correctly
+# through several pages.
+--eval SET @pg = $pg_val
+--eval SET @pg_gap = $pg_gap
+--eval SET @pg_not_gap = $pg_not_gap
+--let $i = $gaps_count
+while ($i) {
+delete from t where a between @pg and @pg + @pg_gap;
+SET @pg = @pg + @pg_gap + @pg_not_gap;
+--dec $i
+}
+
+--connection default
+
+connect (con1,localhost,root,,);
+begin;
+SET DEBUG_SYNC='before_debug_intern_query_debug SIGNAL before_commit WAIT_FOR continue';
+--eval set @max_records=$max_records
+--eval SET @pg = $pg_val
+--eval SET @pg_gap = $pg_gap
+--eval SET @pg_not_gap = $pg_not_gap
+--send set session innodb_intern_query="PROCEDURE TEST_GAP_LOCK () IS BEGIN SELECT * FROM test/t WHERE a = 50 FOR UPDATE; SELECT * FROM test/t WHERE a = 20430 FOR UPDATE; END;"
+
+--connection default
+SET DEBUG_SYNC='now WAIT_FOR before_commit';
+SET session innodb_lock_wait_timeout=1;
+--error ER_LOCK_WAIT_TIMEOUT
+insert into t values (35,35);
+#--error ER_LOCK_WAIT_TIMEOUT
+insert into t values(20475, 20475);
+SET DEBUG_SYNC='now SIGNAL continue';
+
+--connection con1
+--reap
+
+--connection default
+drop table t;
+set debug_sync='reset';
+
+
