@@ -411,9 +411,7 @@ row_merge_fts_doc_add_word_for_parser(
 	str.f_n_char = fts_get_token_size(
 		(CHARSET_INFO*)param->cs, word, word_len);
 
-	/* JAN: TODO: MySQL 5.7 FTS
 	ut_ad(boolean_info->position >= 0);
-	*/
 
 	ptr = static_cast<byte*>(ut_malloc_nokey(sizeof(row_fts_token_t)
 			+ sizeof(fts_string_t) + str.f_len));
@@ -427,10 +425,7 @@ row_merge_fts_doc_add_word_for_parser(
 	fts_token->text->f_n_char = str.f_n_char;
 	memcpy(fts_token->text->f_str, str.f_str, str.f_len);
 
-	/* JAN: TODO: MySQL 5.7 FTS
 	fts_token->position = boolean_info->position;
-	*/
-
 	/* Add token to list */
 	UT_LIST_ADD_LAST(t_ctx->fts_token_list, fts_token);
 
@@ -667,6 +662,8 @@ row_merge_fts_doc_tokenize(
 		byte		position[4];
 		if (parser == NULL) {
 			pos += t_ctx->processed_len + inc - str.f_len;
+		} else {
+			pos += fts_token->position + t_ctx->init_pos;
 		}
 		len = 4;
 		mach_write_to_4(position, pos);

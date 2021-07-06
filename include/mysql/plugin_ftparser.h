@@ -26,7 +26,7 @@ extern "C" {
   API for Full-text parser plugin. (MYSQL_FTPARSER_PLUGIN)
 */
 
-#define MYSQL_FTPARSER_INTERFACE_VERSION 0x0100
+#define MYSQL_FTPARSER_INTERFACE_VERSION 0x0101
 
 /* Parsing modes. Set in  MYSQL_FTPARSER_PARAM::mode */
 enum enum_ftparser_mode
@@ -115,6 +115,9 @@ enum enum_ft_token_type
 
   trunc: Corresponds to the '*' operator in the default setting of the
   ft_boolean_syntax system variable.
+
+  position: Start position in bytes of the word in the document,
+  used by InnoDB FTS
 */
 
 typedef struct st_mysql_ftparser_boolean_info
@@ -124,6 +127,7 @@ typedef struct st_mysql_ftparser_boolean_info
   int weight_adjust;
   char wasign;
   char trunc;
+  int position;
   /* These are parser state and must be removed. */
   char prev;
   char *quot;

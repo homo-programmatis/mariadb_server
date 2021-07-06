@@ -4615,12 +4615,8 @@ fts_tokenize_document_internal(
 {
 	fts_string_t	str;
 	byte		buf[FTS_MAX_WORD_LEN + 1];
-	/* JAN: TODO: MySQL 5.7
 	MYSQL_FTPARSER_BOOLEAN_INFO bool_info =
 		{ FT_TOKEN_WORD, 0, 0, 0, 0, 0, ' ', 0 };
-	*/
-	MYSQL_FTPARSER_BOOLEAN_INFO bool_info =
-		{ FT_TOKEN_WORD, 0, 0, 0, 0, ' ', 0};
 
 	ut_ad(len >= 0);
 
@@ -4634,11 +4630,9 @@ fts_tokenize_document_internal(
 			&str);
 
 		if (str.f_len > 0) {
-			/* JAN: TODO: MySQL 5.7
 			bool_info.position =
 				static_cast<int>(i + inc - str.f_len);
 			ut_ad(bool_info.position >= 0);
-			*/
 
 			/* Stop when add word fails */
 			if (param->mysql_add_word(
@@ -4681,11 +4675,8 @@ fts_tokenize_add_word_for_parser(
 	str.f_n_char = fts_get_token_size(
 		const_cast<CHARSET_INFO*>(param->cs), word, word_len);
 
-	/* JAN: TODO: MySQL 5.7 FTS
 	ut_ad(boolean_info->position >= 0);
 	position = boolean_info->position + fts_param->add_pos;
-	*/
-	position = fts_param->add_pos;
 
 	fts_add_token(result_doc, str, position);
 
