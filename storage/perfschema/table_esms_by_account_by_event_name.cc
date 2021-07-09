@@ -70,7 +70,7 @@ table_esms_by_account_by_event_name::m_share=
                       "SUM_SELECT_FULL_RANGE_JOIN BIGINT unsigned not null comment 'Sum of the SELECT_FULL_RANGE_JOIN column in the events_statements_current table.',"
                       "SUM_SELECT_RANGE BIGINT unsigned not null comment 'Sum of the SELECT_RANGE column in the events_statements_current table.',"
                       "SUM_SELECT_RANGE_CHECK BIGINT unsigned not null comment 'Sum of the SELECT_RANGE_CHECK column in the events_statements_current table.',"
-                      "SUM_SELECT_SCAN BIGINT unsigned not null comment 'Sum of the SELECT_SCANx column in the events_statements_current table.',"
+                      "SUM_SELECT_SCAN BIGINT unsigned not null comment 'Sum of the SELECT_SCAN column in the events_statements_current table.',"
                       "SUM_SORT_MERGE_PASSES BIGINT unsigned not null comment 'Sum of the SORT_MERGE_PASSES column in the events_statements_current table.',"
                       "SUM_SORT_RANGE BIGINT unsigned not null comment 'Sum of the SORT_RANGE column in the events_statements_current table.',"
                       "SUM_SORT_ROWS BIGINT unsigned not null comment 'Sum of the SORT_ROWS column in the events_statements_current table.',"

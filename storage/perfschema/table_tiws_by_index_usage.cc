@@ -88,7 +88,7 @@ table_tiws_by_index_usage::m_share=
                       "SUM_TIMER_DELETE BIGINT unsigned not null comment 'Total wait time of all delete operations that are timed.',"
                       "MIN_TIMER_DELETE BIGINT unsigned not null comment 'Minimum wait time of all delete operations that are timed.',"
                       "AVG_TIMER_DELETE BIGINT unsigned not null comment 'Average wait time of all delete operations that are timed.',"
-                      "MAX_TIMER_DELETE BIGINT unsigned not null comment '	Maximum wait time of all delete operations that are timed.')") },
+                      "MAX_TIMER_DELETE BIGINT unsigned not null comment 'Maximum wait time of all delete operations that are timed.')") },
   false  /* perpetual */
 };
 
