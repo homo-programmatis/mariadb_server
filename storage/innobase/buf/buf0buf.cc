@@ -3008,6 +3008,10 @@ lookup:
 				}
 			}
 
+			if (local_err == DB_IO_ERROR) {
+				return NULL;
+			}
+
 			ib::fatal() << "Unable to read page " << page_id
 				<< " into the buffer pool after "
 				<< BUF_PAGE_READ_MAX_RETRIES
