@@ -754,7 +754,7 @@ btr_validate_index(
 @param[in,out]	page		page to remove
 @param[in]	index		index tree
 @param[in,out]	mtr		mini-transaction */
-void
+MY_ATTRIBUTE((warn_unused_result)) dberr_t
 btr_level_list_remove_func(
 	ulint			space,
 	ulint			zip_size,
