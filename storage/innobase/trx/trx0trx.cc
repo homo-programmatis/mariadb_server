@@ -1717,6 +1717,7 @@ trx_print_low(
 			/*!< in: mem_heap_get_size(trx->lock.lock_heap) */
 {
 	ibool		newline;
+
 	fprintf(f, "TRANSACTION " TRX_ID_FMT, trx_get_id_for_print(trx));
 
 	switch (trx->state) {
@@ -1739,8 +1740,9 @@ trx_print_low(
 	fprintf(f, ", state %lu", (ulong) trx->state);
 	ut_ad(0);
 state_ok:
+	const char* op_info = trx->op_info;
 
-	if (const char *op_info = trx->op_info) {
+	if (*op_info) {
 		putc(' ', f);
 		fputs(op_info, f);
 	}

@@ -6495,7 +6495,8 @@ public:
     if (field && field->default_value)
       field->default_value->expr->update_used_tables();
   }
-  bool vcol_assignment_allowed_value() const { return vcol_assignment_ok; }
+  bool vcol_assignment_allowed_value() const override
+  { return vcol_assignment_ok; }
   Field *get_tmp_table_field() override { return nullptr; }
   Item *get_tmp_table_item(THD *) override { return this; }
   Item_field *field_for_view_update() override { return nullptr; }

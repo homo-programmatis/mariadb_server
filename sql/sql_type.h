@@ -6827,7 +6827,7 @@ public:
   Field *make_conversion_table_field(MEM_ROOT *root,
                                      TABLE *table, uint metadata,
                                      const Field *target) const override;
-  bool union_element_finalize(Item_type_holder* item) const;
+  bool union_element_finalize(Item_type_holder* item) const override;
   bool Column_definition_fix_attributes(Column_definition *c) const override;
   bool Column_definition_prepare_stage1(THD *thd,
                                         MEM_ROOT *mem_root,
