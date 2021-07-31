@@ -12,8 +12,8 @@ if (!$galera_cluster_size)
   --let $galera_cluster_size = 2
 }
 
---source include/galera_init.inc
 --source include/have_innodb.inc
+--source include/galera_init.inc
 --source include/galera_wait_ready.inc
 
 
@@ -23,8 +23,6 @@ while ($_galera_node != 1)
 {
   --connection node_$_galera_node
   --source include/galera_wait_ready.inc
-  --source include/have_innodb.inc
-
   --dec $_galera_node
 }
 
