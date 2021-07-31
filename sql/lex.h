@@ -220,6 +220,7 @@ SYMBOL symbols[] = {
   { "ENGINES",		SYM(ENGINES_SYM)},
   { "ENUM",		SYM(ENUM)},
   { "ERROR",            SYM(ERROR_SYM)},
+  { "ERROR_INDEX", SYM(ERROR_INDEX_SYM)},
   { "ERRORS",		SYM(ERRORS)},
   { "ESCAPE",		SYM(ESCAPE_SYM)},
   { "ESCAPED",		SYM(ESCAPED)},
