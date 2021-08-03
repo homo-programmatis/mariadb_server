@@ -161,6 +161,7 @@ static struct wsrep_service_st wsrep_handler = {
   wsrep_run_wsrep_commit,
   wsrep_thd_LOCK,
   wsrep_thd_UNLOCK,
+  wsrep_thd_lock_check,
   wsrep_thd_awake,
   wsrep_thd_conflict_state,
   wsrep_thd_conflict_state_str,

@@ -8907,7 +8907,8 @@ THD *find_thread_by_id(longlong id, bool query_id)
       continue;
     if (id == (query_id ? tmp->query_id : (longlong) tmp->thread_id))
     {
-      mysql_mutex_lock(&tmp->LOCK_thd_data);    // Lock from delete
+	    //      mysql_mutex_lock(&tmp->LOCK_thd_kill); // Lock from delete
+      mysql_mutex_lock(&tmp->LOCK_thd_data); // Lock from concurrent usage
       break;
     }
   }

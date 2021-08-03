@@ -91,6 +91,7 @@ extern struct wsrep_service_st {
   enum wsrep_trx_status       (*wsrep_run_wsrep_commit_func)(THD *thd, bool all);
   void                        (*wsrep_thd_LOCK_func)(THD *thd);
   void                        (*wsrep_thd_UNLOCK_func)(THD *thd);
+  void                        (*wsrep_thd_lock_check_func)(THD* thd);
   void                        (*wsrep_thd_awake_func)(THD *thd, my_bool signal);
   enum wsrep_conflict_state   (*wsrep_thd_conflict_state_func)(MYSQL_THD, my_bool);
   const char *                (*wsrep_thd_conflict_state_str_func)(THD *thd);
@@ -138,6 +139,7 @@ extern struct wsrep_service_st {
 #define wsrep_run_wsrep_commit(T,A) wsrep_service->wsrep_run_wsrep_commit_func(T,A)
 #define wsrep_thd_LOCK(T) wsrep_service->wsrep_thd_LOCK_func(T)
 #define wsrep_thd_UNLOCK(T) wsrep_service->wsrep_thd_UNLOCK_func(T)
+#define wsrep_thd_lock_check(T) wsrep_service->wsrep_thd_lock_check_func(T)
 #define wsrep_thd_awake(T,S) wsrep_service->wsrep_thd_awake_func(T,S)
 #define wsrep_thd_conflict_state(T,S) wsrep_service->wsrep_thd_conflict_state_func(T,S)
 #define wsrep_thd_conflict_state_str(T) wsrep_service->wsrep_thd_conflict_state_str_func(T)
@@ -217,6 +219,7 @@ void wsrep_lock_rollback();
 void wsrep_post_commit(THD* thd, bool all);
 void wsrep_thd_LOCK(THD *thd);
 void wsrep_thd_UNLOCK(THD *thd);
+void wsrep_thd_lock_check(THD * thd);
 void wsrep_thd_awake(THD *thd, my_bool signal);
 void wsrep_thd_set_conflict_state(THD *thd, enum wsrep_conflict_state state);
 bool wsrep_thd_ignore_table(THD *thd);

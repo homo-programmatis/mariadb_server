@@ -838,13 +838,6 @@ void wsrep_thr_init()
 void wsrep_init_startup (bool first)
 {
   if (wsrep_init()) unireg_abort(1);
-
-  wsrep_thr_lock_init(
-     (wsrep_thd_is_brute_force_fun)wsrep_thd_is_BF,
-     (wsrep_abort_thd_fun)wsrep_abort_thd,
-     wsrep_debug, wsrep_convert_LOCK_to_trx,
-     (wsrep_on_fun)wsrep_on);
-
   /*
     Pre-initialize global_system_variables.table_plugin with a dummy engine
     (placeholder) required during the initialization of wsrep threads (THDs).
@@ -1980,10 +1973,11 @@ bool wsrep_grant_mdl_exception(MDL_context *requestor_ctx,
                                MDL_ticket *ticket,
                                const MDL_key *key)
 {
-  /* Fallback to the non-wsrep behaviour */
-  if (!WSREP_ON) return FALSE;
-
   THD *request_thd= requestor_ctx->get_thd();
+
+  /* Fallback to the non-wsrep behaviour */
+  if (!WSREP(request_thd)) return FALSE;
+
   THD *granted_thd= ticket->get_ctx()->get_thd();
   bool ret= false;
 
@@ -2020,6 +2014,7 @@ bool wsrep_grant_mdl_exception(MDL_context *requestor_ctx,
     ticket->wsrep_report(wsrep_debug);
 
     mysql_mutex_lock(&granted_thd->LOCK_thd_data);
+
     if (granted_thd->wsrep_exec_mode == TOTAL_ORDER ||
         granted_thd->wsrep_exec_mode == REPL_RECV)
     {
@@ -2058,8 +2053,8 @@ bool wsrep_grant_mdl_exception(MDL_context *requestor_ctx,
         ticket->wsrep_report(true);
       }
 
-      mysql_mutex_unlock(&granted_thd->LOCK_thd_data);
       wsrep_abort_thd((void *) request_thd, (void *) granted_thd, 1);
+      mysql_mutex_unlock(&granted_thd->LOCK_thd_data);
       ret= false;
     }
   }
@@ -2697,14 +2692,18 @@ void wsrep_thd_UNLOCK(THD *thd)
   mysql_mutex_unlock(&thd->LOCK_thd_data);
 }
 
+void wsrep_thd_lock_check(THD *thd)
+{
+  mysql_mutex_assert_owner(&thd->LOCK_thd_data);
+}
 
-extern "C" time_t wsrep_thd_query_start(THD *thd) 
+extern "C" time_t wsrep_thd_query_start(THD *thd)
 {
   return thd->query_start();
 }
 
 
-extern "C" uint32 wsrep_thd_wsrep_rand(THD *thd) 
+extern "C" uint32 wsrep_thd_wsrep_rand(THD *thd)
 {
   return thd->wsrep_rand;
 }
@@ -2762,7 +2761,9 @@ extern "C" void wsrep_thd_awake(THD *thd, my_bool signal)
 {
   if (signal)
   {
+    mysql_mutex_lock(&thd->LOCK_thd_data);
     thd->awake(KILL_QUERY);
+    mysql_mutex_unlock(&thd->LOCK_thd_data);
   }
   else
   {

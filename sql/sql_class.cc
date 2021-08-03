@@ -1879,16 +1879,17 @@ bool THD::notify_shared_lock(MDL_context_owner *ctx_in_use,
           thread can see those instances (e.g. see partitioning code).
         */
         if (!thd_table->needs_reopen())
-        {
           signalled|= mysql_lock_abort_for_thread(this, thd_table);
-          if (WSREP(this) && wsrep_thd_is_BF(this, FALSE))
-          {
-            WSREP_DEBUG("remove_table_from_cache: %llu",
-                        (unsigned long long) this->real_id);
-            wsrep_abort_thd((void *)this, (void *)in_use, FALSE);
-          }
-        }
       }
+
+#ifdef WITH_WSREP
+      if (WSREP(this) && wsrep_thd_is_BF(this, FALSE))
+      {
+        WSREP_DEBUG("remove_table_from_cache: %llu",
+                    (unsigned long long) this->real_id);
+        wsrep_abort_thd((void *)this, (void *)in_use, FALSE);
+      }
+#endif /* WITH_WSREP */
     }
     mysql_mutex_unlock(&in_use->LOCK_thd_data);
   }
