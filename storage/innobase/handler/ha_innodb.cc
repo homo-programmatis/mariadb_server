@@ -10604,7 +10604,6 @@ create_table_info_t::create_table_def()
 				table->name.m_name, field->field_name.str);
 err_col:
 			dict_mem_table_free(table);
-			ut_ad(trx_state_eq(m_trx, TRX_STATE_NOT_STARTED));
 			DBUG_RETURN(HA_ERR_GENERIC);
 		}
 
@@ -10772,9 +10771,9 @@ err_col:
 		table->space = fil_system.temp_space;
 		table->add_to_cache();
 	} else {
-		if (err == DB_SUCCESS) {
-			err = row_create_table_for_mysql(table, m_trx);
-		}
+		ut_ad(dict_sys.sys_tables_exist());
+
+		err = row_create_table_for_mysql(table, m_trx);
 
 		DBUG_EXECUTE_IF("ib_crash_during_create_for_encryption",
 				DBUG_SUICIDE(););
@@ -13127,18 +13126,48 @@ ha_innobase::create(
 	}
 
 	const bool own_trx = !trx;
+	int error = 0;
 
 	if (own_trx) {
 		info.allocate_trx();
 		trx = info.trx();
-		/* Latch the InnoDB data dictionary exclusively so that no deadlocks
-		or lock waits can happen in it during a table create operation.
-		Drop table etc. do this latching in row0mysql.cc. */
-		row_mysql_lock_data_dictionary(trx);
 		DBUG_ASSERT(trx_state_eq(trx, TRX_STATE_NOT_STARTED));
 	}
+	if (own_trx && !(info.flags2() & DICT_TF2_TEMPORARY)) {
+		trx_start_for_ddl(trx);
+		dberr_t err;
+		if ((err = row_mysql_lock_table(trx, dict_sys.sys_tables,
+						LOCK_X, "locking SYS_TABLES"))
+		    || (err = row_mysql_lock_table(trx, dict_sys.sys_columns,
+						   LOCK_X,
+						   "locking SYS_COLUMNS"))
+		    || (err = row_mysql_lock_table(trx, dict_sys.sys_indexes,
+						   LOCK_X,
+						   "locking SYS_INDEXES"))
+		    || (err = row_mysql_lock_table(trx, dict_sys.sys_fields,
+						   LOCK_X,
+						   "locking SYS_FIELDS"))
+		    || (err = row_mysql_lock_table(trx, dict_sys.sys_foreign,
+						   LOCK_X,
+						   "locking SYS_FOREIGN"))
+		    || (err = row_mysql_lock_table(trx,
+						   dict_sys.sys_foreign_cols,
+						   LOCK_X,
+						   "locking SYS_FOREIGN_COLS"))
+		    || (err = row_mysql_lock_table(trx, dict_sys.sys_virtual,
+						   LOCK_X,
+						   "locking SYS_VIRTUAL"))) {
+			error = convert_error_code_to_mysql(err, 0, nullptr);
+		}
+	}
+	if (own_trx) {
+		row_mysql_lock_data_dictionary(trx);
+	}
 
-	int error = info.create_table(own_trx);
+	if (!error) {
+		error = info.create_table(own_trx);
+	}
+
 	if (error) {
 		/* Drop the being-created table before rollback,
 		so that rollback can possibly rename back a table
