@@ -2052,11 +2052,7 @@ ha_innobase::check_if_supported_inplace_alter(
 		DBUG_RETURN(HA_ALTER_INPLACE_NOT_SUPPORTED);
 	}
 
-	if (!dict_sys.sys_tables_exist()) {
-		ha_alter_info->unsupported_reason
-			= "missing InnoDB system tables";
-		DBUG_RETURN(HA_ALTER_INPLACE_NOT_SUPPORTED);
-	}
+	ut_ad(dict_sys.sys_tables_exist());
 
 	/* Only support online add foreign key constraint when
 	check_foreigns is turned off */

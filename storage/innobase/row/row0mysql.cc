@@ -2198,6 +2198,7 @@ row_create_table_for_mysql(
 	que_thr_t*	thr;
 	dberr_t		err;
 
+	ut_ad(dict_sys.sys_tables_exist());
 	ut_ad(dict_sys.locked());
 	ut_ad(trx->dict_operation_lock_mode == RW_X_LATCH);
 
@@ -2205,31 +2206,21 @@ row_create_table_for_mysql(
 
 	DBUG_EXECUTE_IF(
 		"ib_create_table_fail_at_start_of_row_create_table_for_mysql",
+		err = DB_ERROR;
 		goto err_exit;
 	);
 
-	trx->op_info = "creating table";
-
 	if (row_mysql_is_system_table(table->name.m_name)) {
 
-		ib::error() << "Trying to create a MariaDB system table "
-			<< table->name << " of type InnoDB. MariaDB system"
-			" tables must be of the MyISAM type!";
-
-err_exit:
-		dict_mem_table_free(table);
-
-		trx->op_info = "";
-
-		return(DB_ERROR);
-	}
-
-	if (!dict_sys.sys_tables_exist()) {
-		ib::error() << "Some InnoDB system tables are missing";
+		sql_print_error("InnoDB: Trying to create a MariaDB system "
+				" table %s of type InnoDB. MariaDB system"
+				" tables must be of the MyISAM type!",
+				table->name.m_name);
+		err = DB_ERROR;
 		goto err_exit;
 	}
 
-	trx_start_if_not_started_xa(trx, true);
+	trx->op_info = "creating table";
 
 	heap = mem_heap_create(512);
 
@@ -2246,13 +2237,14 @@ err_exit:
 
 	err = trx->error_state;
 
+	que_graph_free((que_t*) que_node_get_parent(thr));
+
 	if (err != DB_SUCCESS) {
 		trx->error_state = DB_SUCCESS;
 		trx->rollback();
+err_exit:
 		dict_mem_table_free(table);
 	}
-
-	que_graph_free((que_t*) que_node_get_parent(thr));
 
 	trx->op_info = "";
 
