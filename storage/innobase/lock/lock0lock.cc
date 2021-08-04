@@ -3072,20 +3072,15 @@ void lock_rec_restore_from_page_infimum(const buf_block_t &block,
 
 /*========================= TABLE LOCKS ==============================*/
 
-/*********************************************************************//**
-Creates a table lock object and adds it as the last in the lock queue
-of the table. Does NOT check for deadlocks or lock compatibility.
-@return own: new lock object */
-UNIV_INLINE
-lock_t*
-lock_table_create(
-/*==============*/
-	dict_table_t*	table,	/*!< in/out: database table
-				in dictionary cache */
-	unsigned	type_mode,/*!< in: lock mode possibly ORed with
-				LOCK_WAIT */
-	trx_t*		trx,	/*!< in: trx */
-	lock_t*		c_lock)	/*!< in: conflicting lock */
+/**
+Create a table lock, without checking for deadlocks or lock compatibility.
+@param table      table on which the lock is created
+@param type_mode  lock type and mode
+@param trx        transaction
+@param c_lock     conflicting lock
+@return the created lock object */
+lock_t *lock_table_create(dict_table_t *table, unsigned type_mode, trx_t *trx,
+                          lock_t *c_lock)
 {
 	lock_t*		lock;
 
@@ -3478,7 +3473,7 @@ void lock_table_resurrect(dict_table_t *table, trx_t *trx, lock_mode mode)
     ut_ad(!lock_table_other_has_incompatible(trx, LOCK_WAIT, table, mode));
 
     trx->mutex_lock();
-    lock_table_create(table, mode, trx, nullptr);
+    lock_table_create(table, mode, trx);
   }
   trx->mutex_unlock();
 }
