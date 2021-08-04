@@ -6296,6 +6296,24 @@ acquire_lock:
 		}
 	}
 
+	if (error == DB_SUCCESS) {
+		if (!(error = lock_table_for_trx(dict_sys.sys_tables,
+						 ctx->trx, LOCK_X))
+		    || !(error = lock_table_for_trx(dict_sys.sys_columns,
+						    ctx->trx, LOCK_X))
+		    || !(error = lock_table_for_trx(dict_sys.sys_indexes,
+						    ctx->trx, LOCK_X))
+		    || !(error = lock_table_for_trx(dict_sys.sys_fields,
+						    ctx->trx, LOCK_X))
+		    || !(error = lock_table_for_trx(dict_sys.sys_foreign,
+						    ctx->trx, LOCK_X))
+		    || !(error = lock_table_for_trx(dict_sys.sys_foreign_cols,
+						    ctx->trx, LOCK_X))) {
+			error = lock_table_for_trx(dict_sys.sys_virtual,
+						   ctx->trx, LOCK_X);
+		}
+	}
+
 	if (error != DB_SUCCESS) {
 		table_lock_failed = true;
 		goto error_handling;
@@ -10907,8 +10925,33 @@ lock_fail:
 		}
 	}
 
-	/* Latch the InnoDB data dictionary exclusively so that no deadlocks
-	or lock waits can happen in it during the data dictionary operation. */
+	{
+		dberr_t error;
+		if (!(error = lock_table_for_trx(dict_sys.sys_tables,
+						 trx, LOCK_X))
+		    || !(error = lock_table_for_trx(dict_sys.sys_columns,
+						    trx, LOCK_X))
+		    || !(error = lock_table_for_trx(dict_sys.sys_indexes,
+						    trx, LOCK_X))
+		    || !(error = lock_table_for_trx(dict_sys.sys_fields,
+						    trx, LOCK_X))
+		    || !(error = lock_table_for_trx(dict_sys.sys_foreign,
+						    trx, LOCK_X))
+		    || !(error = lock_table_for_trx(dict_sys.sys_foreign_cols,
+						    trx, LOCK_X))) {
+			error = lock_table_for_trx(dict_sys.sys_virtual,
+						   trx, LOCK_X);
+		}
+		if (error != DB_SUCCESS) {
+			my_error_innodb(
+				error, table_share->table_name.str, 0);
+			if (fts_exist) {
+				purge_sys.resume_FTS();
+			}
+			DBUG_RETURN(true);
+		}
+	}
+
 	row_mysql_lock_data_dictionary(trx);
 
 	/* Prevent the background statistics collection from accessing
