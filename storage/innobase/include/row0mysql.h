@@ -358,18 +358,6 @@ row_create_index_for_mysql(
 	MY_ATTRIBUTE((warn_unused_result));
 
 /*********************************************************************//**
-Sets an exclusive lock on a table.
-@return error code or DB_SUCCESS */
-dberr_t
-row_mysql_lock_table(
-/*=================*/
-	trx_t*		trx,		/*!< in/out: transaction */
-	dict_table_t*	table,		/*!< in: table to lock */
-	enum lock_mode	mode,		/*!< in: LOCK_X or LOCK_S */
-	const char*	op_info)	/*!< in: string for trx->op_info */
-	MY_ATTRIBUTE((nonnull, warn_unused_result));
-
-/*********************************************************************//**
 Discards the tablespace of a table which stored in an .ibd file. Discarding
 means that this function deletes the .ibd file and assigns a new table id for
 the table. Also the file_unreadable flag is set.

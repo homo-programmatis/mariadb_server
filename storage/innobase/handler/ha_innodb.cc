@@ -13136,27 +13136,20 @@ ha_innobase::create(
 	if (own_trx && !(info.flags2() & DICT_TF2_TEMPORARY)) {
 		trx_start_for_ddl(trx);
 		dberr_t err;
-		if ((err = row_mysql_lock_table(trx, dict_sys.sys_tables,
-						LOCK_X, "locking SYS_TABLES"))
-		    || (err = row_mysql_lock_table(trx, dict_sys.sys_columns,
-						   LOCK_X,
-						   "locking SYS_COLUMNS"))
-		    || (err = row_mysql_lock_table(trx, dict_sys.sys_indexes,
-						   LOCK_X,
-						   "locking SYS_INDEXES"))
-		    || (err = row_mysql_lock_table(trx, dict_sys.sys_fields,
-						   LOCK_X,
-						   "locking SYS_FIELDS"))
-		    || (err = row_mysql_lock_table(trx, dict_sys.sys_foreign,
-						   LOCK_X,
-						   "locking SYS_FOREIGN"))
-		    || (err = row_mysql_lock_table(trx,
-						   dict_sys.sys_foreign_cols,
-						   LOCK_X,
-						   "locking SYS_FOREIGN_COLS"))
-		    || (err = row_mysql_lock_table(trx, dict_sys.sys_virtual,
-						   LOCK_X,
-						   "locking SYS_VIRTUAL"))) {
+		if ((err = lock_table_for_trx(dict_sys.sys_tables,
+					      trx, LOCK_X))
+		    || (err = lock_table_for_trx(dict_sys.sys_columns,
+						 trx, LOCK_X))
+		    || (err = lock_table_for_trx(dict_sys.sys_indexes,
+						 trx, LOCK_X))
+		    || (err = lock_table_for_trx(dict_sys.sys_fields,
+						 trx, LOCK_X))
+		    || (err = lock_table_for_trx(dict_sys.sys_foreign,
+						 trx, LOCK_X))
+		    || (err = lock_table_for_trx(dict_sys.sys_foreign_cols,
+						 trx, LOCK_X))
+		    || (err = lock_table_for_trx(dict_sys.sys_virtual,
+						 trx, LOCK_X))) {
 			error = convert_error_code_to_mysql(err, 0, nullptr);
 		}
 	}
@@ -13248,10 +13241,8 @@ ha_innobase::discard_or_import_tablespace(
 	trx_start_if_not_started(m_prebuilt->trx, true);
 
 	/* Obtain an exclusive lock on the table. */
-	dberr_t	err = row_mysql_lock_table(
-		m_prebuilt->trx, m_prebuilt->table, LOCK_X,
-		discard ? "setting table lock for DISCARD TABLESPACE"
-			: "setting table lock for IMPORT TABLESPACE");
+	dberr_t	err = lock_table_for_trx(m_prebuilt->table,
+					 m_prebuilt->trx, LOCK_X);
 
 	if (err != DB_SUCCESS) {
 		/* unable to lock the table: do nothing */

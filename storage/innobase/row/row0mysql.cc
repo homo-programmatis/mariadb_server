@@ -2629,54 +2629,6 @@ rollback:
   return err;
 }
 
-/*********************************************************************//**
-Sets an exclusive lock on a table.
-@return error code or DB_SUCCESS */
-dberr_t
-row_mysql_lock_table(
-/*=================*/
-	trx_t*		trx,		/*!< in/out: transaction */
-	dict_table_t*	table,		/*!< in: table to lock */
-	enum lock_mode	mode,		/*!< in: LOCK_X or LOCK_S */
-	const char*	op_info)	/*!< in: string for trx->op_info */
-{
-	mem_heap_t*	heap;
-	que_thr_t*	thr;
-	dberr_t		err;
-	sel_node_t*	node;
-
-	ut_ad(mode == LOCK_X || mode == LOCK_S);
-
-	heap = mem_heap_create(512);
-
-	trx->op_info = op_info;
-
-	node = sel_node_create(heap);
-	thr = pars_complete_graph_for_exec(node, trx, heap, NULL);
-	thr->graph->state = QUE_FORK_ACTIVE;
-
-	/* We use the select query graph as the dummy graph needed
-	in the lock module call */
-
-	thr = que_fork_get_first_thr(
-		static_cast<que_fork_t*>(que_node_get_parent(thr)));
-
-	do {
-		thr->run_node = thr;
-		thr->prev_node = thr->common.parent;
-
-		err = lock_table(table, mode, thr);
-
-		trx->error_state = err;
-	} while (err != DB_SUCCESS
-		 && row_mysql_handle_errors(&err, trx, thr, NULL));
-
-	que_graph_free(thr->graph);
-	trx->op_info = "";
-
-	return(err);
-}
-
 /****************************************************************//**
 Delete a single constraint.
 @return error code or DB_SUCCESS */
