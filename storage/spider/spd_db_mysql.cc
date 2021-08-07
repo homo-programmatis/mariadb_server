@@ -5787,6 +5787,111 @@ int spider_db_mbase_util::append_unlock_table(
   DBUG_RETURN(0);
 }
 
+bool item_func_is_rand_wo_args(
+  const char *func_name,
+  int func_name_length,
+  int argument_count
+) {
+  return func_name_length == 4 && !argument_count &&
+    !strncasecmp("rand", func_name, func_name_length);
+}
+
+bool item_func_is_timestampdiff(
+  const char *func_name,
+  int func_name_length
+) {
+  return func_name_length == 13 &&
+    !strncasecmp("timestampdiff", func_name, func_name_length);
+}
+
+/**
+  Check if the arguments of the item_func is directly executable.
+
+  @param item_func
+  @return int
+ */
+int directly_executable_arguments(
+  Item_func *item_func,
+  ha_spider *spider,
+  const char *alias,
+  uint alias_length,
+  bool use_fields,
+  spider_fields *fields,
+  uint dbton_id
+){
+  DBUG_ENTER("directly_executable_arguments");
+  if (uint item_count = item_func->argument_count())
+  {
+    Item **item_list = item_func->arguments();
+    for (uint roop_count = 0; roop_count < item_count; roop_count++)
+    {
+      Item *item = item_list[roop_count];
+      if (int error_num = spider_db_print_item_type(item, NULL, spider, NULL,
+        alias, alias_length, dbton_id, use_fields, fields))
+        DBUG_RETURN(error_num);
+    }
+  }
+  DBUG_RETURN(0);
+}
+
+/**
+  Check if the given item_func and its arguments can be pushed down to
+  a data node. This function is recursive because we need to also check
+  the arguments of the item_func.
+
+  @return int 0: OK to push down, otherwise: not OK
+ */
+int spider_db_mbase_util::directly_computable_item_func(
+  Item_func *item_func,
+  ha_spider *spider,
+  const char *alias,
+  uint alias_length,
+  bool use_fields,
+  spider_fields *fields
+) {
+  DBUG_ENTER("spider_db_mbase_util::open_item_func");
+  Item_func::Functype func_type = item_func->functype();
+  DBUG_PRINT("info",("spider functype = %d", func_type));
+
+  /* The blacklist of the functions that cannot be pushed down */
+  if (
+    func_type == Item_func::TRIG_COND_FUNC ||
+    func_type == Item_func::CASE_SEARCHED_FUNC ||
+    func_type == Item_func::CASE_SIMPLE_FUNC
+  ) {
+    DBUG_RETURN(ER_SPIDER_COND_SKIP_NUM);
+  }
+  if (func_type == Item_func::UDF_FUNC)
+  {
+    int use_pushdown_udf = spider_param_use_pushdown_udf(
+      spider->wide_handler->trx->thd, spider->share->use_pushdown_udf);
+    if (!use_pushdown_udf) {
+        DBUG_RETURN(ER_SPIDER_COND_SKIP_NUM);
+    }
+  }
+  if (func_type == Item_func::FT_FUNC) {
+    if (spider_db_check_ft_idx(item_func, spider) == MAX_KEY)
+      DBUG_RETURN(ER_SPIDER_COND_SKIP_NUM);
+  }
+
+  if (func_type == Item_func::UNKNOWN_FUNC)
+  {
+    LEX_CSTRING original_func_name = item_func->func_name_cstring();
+    const char *func_name = original_func_name.str;
+    int func_name_length = original_func_name.length;
+    DBUG_PRINT("info",("spider func_name = %s", func_name));
+    if (
+      item_func_is_timestampdiff(func_name, func_name_length)
+    ) {
+      DBUG_RETURN(ER_SPIDER_COND_SKIP_NUM);
+    }
+  }
+  /* End of the whitelist */
+
+  DBUG_RETURN(directly_executable_arguments(
+    item_func, spider, alias, alias_length, use_fields, fields, dbton_id));
+}
+
 int spider_db_mbase_util::open_item_func(
   Item_func *item_func,
   ha_spider *spider,

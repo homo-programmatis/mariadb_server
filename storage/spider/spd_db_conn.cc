@@ -9788,6 +9788,12 @@ restart_first:
   DBUG_RETURN(0);
 }
 
+/**
+  Check or print the given item_func.
+
+  The present function is under heavy refactoring. This function should be split
+  into multiple functions such that a function is responsible for just one thing.
+*/
 int spider_db_open_item_func(
   Item_func *item_func,
   ha_spider *spider,
@@ -9799,6 +9805,10 @@ int spider_db_open_item_func(
   spider_fields *fields
 ) {
   DBUG_ENTER("spider_db_open_item_func");
+  if (!str)
+    DBUG_RETURN(spider_dbton[dbton_id].db_util->directly_computable_item_func(
+      item_func, spider, alias, alias_length, use_fields, fields));
+
   DBUG_RETURN(spider_dbton[dbton_id].db_util->open_item_func(
     item_func, spider, str, alias, alias_length, use_fields, fields));
 }

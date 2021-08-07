@@ -918,6 +918,14 @@ public:
     bool use_fields,
     spider_fields *fields
   ) = 0;
+  virtual int directly_computable_item_func(
+    Item_func *item_func,
+    ha_spider *spider,
+    const char *alias,
+    uint alias_length,
+    bool use_fields,
+    spider_fields *fields
+  ) = 0;
 #ifdef HANDLER_HAS_DIRECT_AGGREGATE
   virtual int open_item_sum_func(
     Item_sum *item_sum,
