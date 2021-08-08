@@ -5787,15 +5787,6 @@ int spider_db_mbase_util::append_unlock_table(
   DBUG_RETURN(0);
 }
 
-bool item_func_is_rand_wo_args(
-  const char *func_name,
-  int func_name_length,
-  int argument_count
-) {
-  return func_name_length == 4 && !argument_count &&
-    !strncasecmp("rand", func_name, func_name_length);
-}
-
 bool item_func_is_timestampdiff(
   const char *func_name,
   int func_name_length
@@ -5805,9 +5796,10 @@ bool item_func_is_timestampdiff(
 }
 
 /**
-  Check if the arguments of the item_func is directly executable.
+  Check if the arguments of the given item_func can be pushed down to
+  data node or not.
  */
-int directly_executable_arguments(
+int directly_computable_arguments(
   Item_func *item_func,
   ha_spider *spider,
   const char *alias,
@@ -5816,7 +5808,7 @@ int directly_executable_arguments(
   spider_fields *fields,
   uint dbton_id
 ){
-  DBUG_ENTER("directly_executable_arguments");
+  DBUG_ENTER("directly_computable_arguments");
   if (uint item_count = item_func->argument_count())
   {
     Item **item_list = item_func->arguments();
@@ -5883,9 +5875,10 @@ int spider_db_mbase_util::directly_computable_item_func(
       DBUG_RETURN(ER_SPIDER_COND_SKIP_NUM);
     }
   }
-  /* End of the whitelist */
+  /* End of the blacklist */
 
-  DBUG_RETURN(directly_executable_arguments(
+  /* Check the arguments recursively */
+  DBUG_RETURN(directly_computable_arguments(
     item_func, spider, alias, alias_length, use_fields, fields, dbton_id));
 }
 
