@@ -5838,7 +5838,7 @@ int spider_db_mbase_util::directly_computable_item_func(
   bool use_fields,
   spider_fields *fields
 ) {
-  DBUG_ENTER("spider_db_mbase_util::open_item_func");
+  DBUG_ENTER("spider_db_mbase_util::directly_computable_item_func");
   Item_func::Functype func_type = item_func->functype();
   DBUG_PRINT("info",("spider functype = %d", func_type));
 
@@ -5906,6 +5906,10 @@ int spider_db_mbase_util::open_item_func(
   int use_pushdown_udf;
   bool merge_func = FALSE;
   DBUG_ENTER("spider_db_mbase_util::open_item_func");
+
+  if (!str)
+    DBUG_RETURN(1); // TODO: Set appropriate error code!
+
   if (str)
   {
     if (str->reserve(SPIDER_SQL_OPEN_PAREN_LEN))
