@@ -5806,9 +5806,6 @@ bool item_func_is_timestampdiff(
 
 /**
   Check if the arguments of the item_func is directly executable.
-
-  @param item_func
-  @return int
  */
 int directly_executable_arguments(
   Item_func *item_func,
@@ -5839,7 +5836,7 @@ int directly_executable_arguments(
   a data node. This function is recursive because we need to also check
   the arguments of the item_func.
 
-  @return int 0: OK to push down, otherwise: not OK
+  @return 0: OK to push down, otherwise: not OK
  */
 int spider_db_mbase_util::directly_computable_item_func(
   Item_func *item_func,
