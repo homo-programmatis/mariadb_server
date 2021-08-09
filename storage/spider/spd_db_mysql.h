@@ -130,7 +130,8 @@ public:
     bool use_fields,
     spider_fields *fields
   );
-  int check_if_pushdownable(
+private:
+  int check_if_printable(
     Item_func *item_func,
     ha_spider *spider,
     const char *alias,
@@ -138,6 +139,16 @@ public:
     bool use_fields,
     spider_fields *fields
   );
+  int print_item_func(
+    Item_func *item_func,
+    ha_spider *spider,
+    spider_string *str,
+    const char *alias,
+    uint alias_length,
+    bool use_fields,
+    spider_fields *fields
+  );
+public:
 #ifdef HANDLER_HAS_DIRECT_AGGREGATE
   int open_item_sum_func(
     Item_sum *item_sum,

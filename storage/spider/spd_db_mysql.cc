@@ -5796,13 +5796,42 @@ bool item_func_is_timestampdiff(
 }
 
 /**
+  The function heck if the given item_func and ites arguments can be
+  ushded down to a data node. If so and str != NULL, the function also
+  print, to str, the string corresponding to the item_func.
+
+  @return 0: success, otherwise: error
+ */
+int spider_db_mbase_util::open_item_func(
+  Item_func *item_func,
+  ha_spider *spider,
+  spider_string *str,
+  const char *alias,
+  uint alias_length,
+  bool use_fields,
+  spider_fields *fields
+) {
+  DBUG_ENTER("spider_db_mbase_util::check_if_printable");
+
+  int error = check_if_printable(item_func, spider, alias, alias_length,
+                                  use_fields, fields);
+  if (error)
+    DBUG_RETURN(error);
+  if (!str)
+    DBUG_RETURN(0);
+
+  DBUG_RETURN(print_item_func(item_func, spider, str, alias, alias_length,
+                              use_fields, fields));
+}
+
+/**
   Check if the given item_func and its arguments can be pushed down to
   a data node. This function is recursive because we need to also check
   the arguments of the item_func.
 
-  @return 0: OK to push down, otherwise: not OK
+  @return 0: success, otherwise: error
  */
-int spider_db_mbase_util::check_if_pushdownable(
+int spider_db_mbase_util::check_if_printable(
   Item_func *item_func,
   ha_spider *spider,
   const char *alias,
@@ -5810,7 +5839,7 @@ int spider_db_mbase_util::check_if_pushdownable(
   bool use_fields,
   spider_fields *fields
 ) {
-  DBUG_ENTER("spider_db_mbase_util::check_if_pushdownable");
+  DBUG_ENTER("spider_db_mbase_util::check_if_printable");
   Item_func::Functype func_type = item_func->functype();
   DBUG_PRINT("info",("spider functype = %d", func_type));
 
@@ -5864,7 +5893,14 @@ int spider_db_mbase_util::check_if_pushdownable(
   DBUG_RETURN(0);
 }
 
-int spider_db_mbase_util::open_item_func(
+/**
+  The function print the string corresponding to the given item_func to str.
+  The function is assumed to be called only when the check by the function
+  check_if_printable() has passed.
+
+  @return 0: success, otherwise: error
+ */
+int spider_db_mbase_util::print_item_func(
   Item_func *item_func,
   ha_spider *spider,
   spider_string *str,
@@ -5887,10 +5923,10 @@ int spider_db_mbase_util::open_item_func(
     last_str_length = SPIDER_SQL_NULL_CHAR_LEN;
   int use_pushdown_udf;
   bool merge_func = FALSE;
-  DBUG_ENTER("spider_db_mbase_util::open_item_func");
+  DBUG_ENTER("spider_db_mbase_util::print_item_func");
 
-  if (!str)
-    DBUG_RETURN(1); // TODO: Set appropriate error code!
+  DBUG_ASSERT(str && !check_if_printable(item_func, spider, alias, alias_length,
+                                          use_fields, fields));
 
   if (str)
   {
