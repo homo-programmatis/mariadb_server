@@ -5796,41 +5796,13 @@ bool item_func_is_timestampdiff(
 }
 
 /**
-  Check if the arguments of the given item_func can be pushed down to
-  data node or not.
- */
-int directly_computable_arguments(
-  Item_func *item_func,
-  ha_spider *spider,
-  const char *alias,
-  uint alias_length,
-  bool use_fields,
-  spider_fields *fields,
-  uint dbton_id
-){
-  DBUG_ENTER("directly_computable_arguments");
-  if (uint item_count = item_func->argument_count())
-  {
-    Item **item_list = item_func->arguments();
-    for (uint roop_count = 0; roop_count < item_count; roop_count++)
-    {
-      Item *item = item_list[roop_count];
-      if (int error_num = spider_db_print_item_type(item, NULL, spider, NULL,
-        alias, alias_length, dbton_id, use_fields, fields))
-        DBUG_RETURN(error_num);
-    }
-  }
-  DBUG_RETURN(0);
-}
-
-/**
   Check if the given item_func and its arguments can be pushed down to
   a data node. This function is recursive because we need to also check
   the arguments of the item_func.
 
   @return 0: OK to push down, otherwise: not OK
  */
-int spider_db_mbase_util::directly_computable_item_func(
+int spider_db_mbase_util::check_if_pushdownable(
   Item_func *item_func,
   ha_spider *spider,
   const char *alias,
@@ -5838,7 +5810,7 @@ int spider_db_mbase_util::directly_computable_item_func(
   bool use_fields,
   spider_fields *fields
 ) {
-  DBUG_ENTER("spider_db_mbase_util::directly_computable_item_func");
+  DBUG_ENTER("spider_db_mbase_util::check_if_pushdownable");
   Item_func::Functype func_type = item_func->functype();
   DBUG_PRINT("info",("spider functype = %d", func_type));
 
@@ -5878,8 +5850,18 @@ int spider_db_mbase_util::directly_computable_item_func(
   /* End of the blacklist */
 
   /* Check the arguments recursively */
-  DBUG_RETURN(directly_computable_arguments(
-    item_func, spider, alias, alias_length, use_fields, fields, dbton_id));
+  if (uint item_count = item_func->argument_count())
+  {
+    Item **item_list = item_func->arguments();
+    for (uint roop_count = 0; roop_count < item_count; roop_count++)
+    {
+      Item *item = item_list[roop_count];
+      if (int error_num = spider_db_print_item_type(item, NULL, spider, NULL,
+        alias, alias_length, dbton_id, use_fields, fields))
+        DBUG_RETURN(error_num);
+    }
+  }
+  DBUG_RETURN(0);
 }
 
 int spider_db_mbase_util::open_item_func(

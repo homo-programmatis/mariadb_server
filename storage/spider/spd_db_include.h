@@ -918,7 +918,7 @@ public:
     bool use_fields,
     spider_fields *fields
   ) = 0;
-  virtual int directly_computable_item_func(
+  virtual int check_if_pushdownable(
     Item_func *item_func,
     ha_spider *spider,
     const char *alias,

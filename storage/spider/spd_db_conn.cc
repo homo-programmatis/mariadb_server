@@ -9806,7 +9806,7 @@ int spider_db_open_item_func(
 ) {
   DBUG_ENTER("spider_db_open_item_func");
   if (!str)
-    DBUG_RETURN(spider_dbton[dbton_id].db_util->directly_computable_item_func(
+    DBUG_RETURN(spider_dbton[dbton_id].db_util->check_if_pushdownable(
       item_func, spider, alias, alias_length, use_fields, fields));
 
   DBUG_RETURN(spider_dbton[dbton_id].db_util->open_item_func(
