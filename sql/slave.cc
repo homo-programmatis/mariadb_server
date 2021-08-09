@@ -3199,7 +3199,8 @@ static int request_dump(THD *thd, MYSQL* mysql, Master_info* mi,
       now we just fill up the error log :-)
     */
     if (mysql_errno(mysql) == ER_NET_READ_INTERRUPTED ||
-        mysql_errno(mysql) == ER_NET_ERROR_ON_WRITE)
+        mysql_errno(mysql) == ER_NET_ERROR_ON_WRITE ||
+        mysql_errno(mysql) == ER_NET_READ_ERROR)
       *suppress_warnings= TRUE;                 // Suppress reconnect warning
     else
       sql_print_error("Error on COM_BINLOG_DUMP: %d  %s, will retry in %d secs",
